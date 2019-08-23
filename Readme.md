@@ -8,7 +8,7 @@
 
 ```shell
 pip3 install -r requirements
-python3 findCet1.py [\d]{6} [12]{1} [\w]{2,3}
+python3 findCet.py [\d]{6} [12]{1} [\w]{2,3}
 ```
 ## 提示
 

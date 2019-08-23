@@ -136,20 +136,63 @@ class Cet1:
                 return True
         else:
             return False
+'''
+@description:http://app.gjzwfw.gov.cn/jimp/jiaoyubu/interfaces/cet.do
+@param {type} 
+@return: 
+'''
+class Cet2:
+    def __init__(self,data):
+        self.data = data
+        self.data["name"] = data["xm"]
+        self.session = requests.session()
+    
+    def headerReq(self):
+        headers ={
+            "Host": "app.gjzwfw.gov.cn",
+            "Connection": "keep-alive",
+            "Content-Length": "53",
+            "Accept": "text/plain, */*; q=0.01",
+            "Origin": "http://app.gjzwfw.gov.cn",
+            "X-Requested-With": "XMLHttpRequest",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.103 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "Referer": "http://app.gjzwfw.gov.cn/jmopen/webapp/html5/jybsljksdccjcx/index.html",
+            "Accept-Encoding": "gzip, deflate",
+            "Accept-Language": "zh-CN,zh;q=0.9",
+            "Cookie": "wdcid=0592f74adee152b7; wdses=11df73c3f3794aea; wdlast=1566453287",
+        }
+        return headers
+
+    def postReq(self):
+        html = self.session.post("http://app.gjzwfw.gov.cn/jimp/jiaoyubu/interfaces/cet.do",headers=self.headerReq(),data=self.data,verify=False)
+        # print(html.text)     
+        if( (not bool(re.search(r'err',html.text)) ) and (not bool(re.search(r'err',html.text))) ):
+            o = re.sub(r'([a-z]+)',r'"\1"',html.text)
+            result = json.loads(re.sub(r'\'',r'"',o))
+            logging.warning("已找到！学校:{0} 姓名:{1} 考生号:{2} 成绩:{3}".format(result["x"],result["n"],result["z"],result["s"]))
+        elif bool(re.search(r'firewall',html.text)):
+            logging.warning(html.text)
+        elif bool(re.search(r'err',html.text)):
+            # logging.warning(html.text)
+            return False
+        else:
+            return False
 
 class threadFind:
     def __init__(self,conf):
         self.conf = conf
         self.room = conf["room"]
-        self.roomEnd = 120
+        self.roomEnd = 168
         self.ucode = conf["ucode"]
         self.ucodeEnd = conf["ucodeMax"]
         self.zkzh = "{0}191{1}{2}{3}".format(self.conf["code"],self.conf["level"],str(self.room).zfill(3),str(self.ucode+1).zfill(2))
         self.start = time.time()
         self.end = None
-        self.unit = 4
+        self.unit = conf["thread"]
         self.average = int((self.roomEnd-self.room)/self.unit)
         self.findStatus = False
+        self.sleepTime = conf["sleep"]
 
     def runFind(self):
         logging.info("开始执行,请等待")
@@ -164,7 +207,9 @@ class threadFind:
                 if self.findStatus:
                     sys.exit()
                 self.ucode = 0  if ((self.ucode+1) == self.conf["ucodeMax"]) else (self.ucode +1)
-                logging.info([ zkzh[10:] for zkzh in zkzhList])
+                logging.info([ "{}-{}-{}".format(zkzh[9],zkzh[10:13],zkzh[13:]) for zkzh in zkzhList])
+                # 设置时间，防止被云盾加黑
+                time.sleep(self.sleepTime)
                 # if self.runReq() == True:
                 #     self.end = time.time()
                 #     logging.info("执行了 %.2f 秒"%(self.end-self.start))
@@ -176,7 +221,7 @@ class threadFind:
                 "zkzh": zkzh,
                 "xm": self.conf["xm"]
             }
-            obj = Cet1(data)
+            obj = Cet2(data)
             res = obj.postReq()
             if res!=False:
                 self.end = time.time()
@@ -202,7 +247,9 @@ if __name__ =="__main__":
         "ucodeMax":30, #教室最大容量
         "level": sys.argv[2], #1四级 2六级
         "ucode":0, #默认教室号 0
-        "xm": sys.argv[3]  #"名字"
+        "xm": sys.argv[3],  #"名字"
+        "thread":4, #线程数量不建议太多
+        "sleep": 0.0 #每次请求完延时事件，防止被云盾检测 单位s
     }
     o = threadFind(conf)
     o.runFind()
