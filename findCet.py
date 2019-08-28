@@ -1,4 +1,4 @@
-import requests,re,time,json,logging,threading,sys
+import requests,re,time,json,logging,threading,sys,random,math
 from bs4 import BeautifulSoup
 logging.basicConfig(level=logging.INFO,format="%(asctime)s [line:%(lineno)d]%(levelname)s - %(message)s",datefmt="%m/%d/%Y %I:%M:%S %p")
 
@@ -69,6 +69,7 @@ class Cet1:
         self.sid = "447fa0c9698b95a425b29f4530cab98129"
     
     def reLoginHeader(self):
+        self.did = self.generateDid()
         headers ={
             "Accept": "*/*",
             "x-tif-did": self.did,
@@ -79,11 +80,18 @@ class Cet1:
             "Referer": "https://servicewechat.com/wx2eec5fb00157a603/56/page-frame.html",
             "Accept-Encoding": "gzip, deflate, br"
         }
-        return headers        
+        return headers
+
+    def generateDid(self):
+        origin = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" 
+        did = ""
+        for i in range(10):
+            did +=origin[math.floor(random.random()*len(origin))]
+        return did
     
     def reLogin(self):
         data = {
-            "code":"021iddJP1FTsf31z8AIP1PggJP1iddJm",
+            "code":"021iddJP1FTsf31z8AIP1PggJP1iddJm",  ##这个是调用wx.login()的code，用来返回session openid
             "appid":"wx2eec5fb00157a603",
             "paasid":"gss"
             }
